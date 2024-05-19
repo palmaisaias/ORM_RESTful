@@ -74,9 +74,9 @@ A product has the following fields:
 
 ### Orders
 
-- **Get all orders**
+- **Place a new order**
   ```
-  GET /orders
+  POST /orders
   ```
 
 - **Get a specific order by ID**
@@ -84,19 +84,9 @@ A product has the following fields:
   GET /orders/<int:id>
   ```
 
-- **Create a new order**
+- **Track an order by ID**
   ```
-  POST /orders
-  ```
-
-- **Update an existing order by ID**
-  ```
-  PUT /orders/<int:id>
-  ```
-
-- **Delete an order by ID**
-  ```
-  DELETE /orders/<int:id>
+  GET /orders/<int:id>/track
   ```
 
 ### Products
