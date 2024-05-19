@@ -1,29 +1,14 @@
 from flask import Flask, jsonify, request
-#Flask - gives us all the tools we need to run a flask app by creating an instance of this class
-#jsonify - converst data to JSON
-#request - allows us to interact with HTTP method requests as objects
 from flask_sqlalchemy import SQLAlchemy
-#SQLAlchemy = ORM to connect and relate python classes to SQL tables
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-#DeclarativeBase - gives ust the base model functionallity to create the Classes as Model Classes for our db tables
-#Mapped - Maps a Class attribute to a table column or relationship
-#mapped_column - sets our Column and allows us to add any constraints we need (unique,nullable, primary_key)
 from flask_marshmallow import Marshmallow
-#Marshmallow - allows us to create a schema to valdite, serialize, and deserialize JSON data
 from datetime import date
-#date - use to create date type objects
 from typing import List
-#List - is used to creat a relationship that will return a list of Objects
 from marshmallow import ValidationError, fields
-#fields - lets us set a schema field which includes datatype and constraints
 from sqlalchemy import select, delete
-#select - acts as our SELECT FROM query
-#delete - acts as our DELET query
 
-
-app = Flask(__name__) #creating and instance of our flask app
-                                                                #user pw     host      db
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:BAC146@localhost/ecomm_db'
+app = Flask(__name__) #--Creating and instance of our flask app
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:@localhost/orm_db'
 
 class Base(DeclarativeBase):
     pass
@@ -33,19 +18,19 @@ ma = Marshmallow(app)
 
 
 class Customer(Base):
-    __tablename__ = 'Customer' #Make your class name the same as your table name (trust me)
+    __tablename__ = 'Customer' #--Make class name the same as the table name....trust Dylan
 
-    #mapping class attributes to database table columns
+    #--Mapping class attributes to database table columns
     id: Mapped[int] = mapped_column(primary_key=True)
     customer_name: Mapped[str] = mapped_column(db.String(200), nullable=False)
     email: Mapped[str] = mapped_column(db.String(300))
     phone: Mapped[str] = mapped_column(db.String(16))
-    #creating one-to-many relationship to Orders table
-    orders: Mapped[List["Orders"]] = db.relationship(back_populates='customer') #back_populates insures that both ends of the relationship have access to the other
+    #--Creating one-to-many relationship to Orders table
+    orders: Mapped[List["Orders"]] = db.relationship(back_populates='customer') #--Back_populates insures that both ends of the relationship have access to the other
 
 order_products = db.Table(
     "Order_Products",
-    Base.metadata, #Allows this table to locate the foreign keys from the other Base class
+    Base.metadata, #--Allows this table to locate the foreign keys from the other Base class
     db.Column('order_id', db.ForeignKey('Orders.id'), primary_key=True),
     db.Column('product_id', db.ForeignKey('Products.id'), primary_key=True)
 )
@@ -57,9 +42,9 @@ class Orders(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     order_date: Mapped[date] = mapped_column(db.Date, nullable=False)
     customer_id: Mapped[int] = mapped_column(db.ForeignKey('Customer.id'))
-    #creating a many-to-one relationship to Customer table
+    #--Creating a many-to-one relationship to Customer table
     customer: Mapped['Customer'] = db.relationship(back_populates='orders')
-    #creating a many-to-many relationship to Products through or association table order_products
+    #--Creating a many-to-many relationship to Products through or association table order_products
     products: Mapped[List['Products']] = db.relationship(secondary=order_products)
 
 class Products(Base):
@@ -70,18 +55,18 @@ class Products(Base):
     price: Mapped[float] = mapped_column(db.Float, nullable=False)
 
 
-#Initialize the database and create tables
+#--Initialize the database and create tables
 with app.app_context():
 #    db.drop_all() 
-    db.create_all() #First check which tables already exist, and then create and tables it couldn't find
-                    #However if it finds a table with the same name, it doesn't construct or modify
+    db.create_all() #--First checks which tables already exist, and then create and tables it couldn't find
+                    #--However if it finds a table with the same name, it doesn't construct or modify.
 
 
 
 
 #============================ CRUD OPERATIONS ==================================
 
-#Defin Customer Schema
+#--Define Customer Schema
 class CustomerSchema(ma.Schema):
     id = fields.Integer(required=False)
     customer_name = fields.String(required=True)
@@ -107,35 +92,44 @@ products_schema = ProductSchema(many=True)
 
 
 
-
 @app.route('/')
 def home():
-    return "If your are Lost welcome to the Sauce!"
+    return '''
+    <pre>
+      __      _
+     o'')}____//
+      `_/      )
+      (_(_/-(_/
+    </pre> 4
+    '''
+# @app.route('/')
+# def home():
+#     return "welcome"
 
 
 #====================Customer Interactions==========================
 
-#Get all customers using a GET method
+#--Get all customers using a GET method
 @app.route("/customers", methods=['GET'])
 def get_customers():
     query = select(Customer)
-    result = db.session.execute(query).scalars() #Exectute query, and convert row objects into scalar objects (python useable)
-    customers = result.all() #packs objects into a list
+    result = db.session.execute(query).scalars() #--Exectute query, and convert row objects into scalar objects (python useable)
+    customers = result.all() #--Packs objects into a list
     return customers_schema.jsonify(customers)
 
-#Get Specific customer using GET method and dynamic route
+#--Get Specific customer using GET method and dynamic route
 @app.route("/customers/<int:id>", methods=['GET'])
 def get_customer(id):
     
     query = select(Customer).filter(Customer.id == id)
-    result = db.session.execute(query).scalars().first() #first() grabs the first object return
+    result = db.session.execute(query).scalars().first() #--first() grabs the first object return
 
     if result is None:
         return jsonify({"Error": "Customer not found"}), 404
     
     return customer_schema.jsonify(result)
 
-#Creating customers with POST request
+#--Creating customers with 'POST' request
 @app.route("/customers", methods=["POST"])
 def add_customer():
 
@@ -150,7 +144,7 @@ def add_customer():
 
     return jsonify({"Message": "New Customer added successfully"}), 201
 
-#Update a user with PUT request
+#--Update a user with 'PUT' request
 @app.route("/customers/<int:id>", methods=['PUT'])
 def update_customer(id):
 
@@ -172,7 +166,7 @@ def update_customer(id):
     db.session.commit()
     return jsonify({"Message": "Customer details have been updated!"})
 
-#Delete a user with DELETE request
+#--Delete a user with 'DELETE' request
 @app.route("/customers/<int:id>", methods=['DELETE'])
 def delete_customer(id):
     query = delete(Customer).filter(Customer.id == id)
@@ -188,8 +182,28 @@ def delete_customer(id):
 
 #====================Products Interactions==========================
 
+#--Get all products using a GET method
+@app.route("/products", methods=['GET'])    #--READ PRODUCTS
+def get_products():
+    query = select(Products)
+    result = db.session.execute(query).scalars()
+    products = result.all() #--packs objects into a list
+    return products_schema.jsonify(products)
 
-@app.route('/products', methods=['POST'])
+#--Get specific product using 'GET' method and dynamic route
+@app.route("/products/<int:id>", methods=['GET'])   #--READS SPECIFIC PRODUCT w/ID
+def get_product(id):
+    
+    query = select(Products).filter(Products.id == id)
+    result = db.session.execute(query).scalars().first()
+
+    if result is None:
+        return jsonify({"Error": "Product not found"}), 404
+    
+    return product_schema.jsonify(result)
+
+#--Create specific product using 'GET' method
+@app.route('/products', methods=['POST'])   #--CREATES PRODUCT
 def add_product():
     try:
         product_data = product_schema.load(request.json)
@@ -202,6 +216,40 @@ def add_product():
 
     return jsonify({"Messages": "New Product added!"}), 201
 
+#--Update a product with PUT request and dynamic route
+@app.route("/products/<int:id>", methods=['PUT'])   #--UPDATES A PRODUCT w/ID
+def update_product(id):
+
+    query = select(Products).where(Products.id == id)
+    result = db.session.execute(query).scalars().first()
+    if result is None:
+        return jsonify({"Error": "Product not found"}), 404
+    
+    product = result
+    
+    try:
+        product_data = product_schema.load(request.json)
+    except ValidationError as e:
+        return jsonify(e.messages), 400
+    
+    for field, value in product_data.items():
+        setattr(product, field, value)
+
+    db.session.commit()
+    return jsonify({"Message": "Product details have been updated!"})
+
+#--Delete a product with 'DELETE' request
+@app.route("/products/<int:id>", methods=['DELETE'])
+def delete_product(id):
+    query = delete(Products).filter(Products.id == id)
+
+    result = db.session.execute(query)
+
+    if result.rowcount == 0:
+        return jsonify({'Error': 'Product not found'}), 404
+    
+    db.session.commit()
+    return jsonify({"Message": "Product removed Successfully!"}), 200
 
 
 #====================Order Operations================================
@@ -212,13 +260,13 @@ class OrderSchema(ma.Schema):
     customer_id = fields.Integer(required=True)
     
     class Meta:
-        fields = ('id', 'order_date', 'customer_id', 'items') #items will be a list of product_ids
+        fields = ('id', 'order_date', 'customer_id', 'items') #--'items' will be a list of product_ids
 
 
 order_schema = OrderSchema()
 orders_schema = OrderSchema(many=True)
 
-@app.route('/orders', methods=['POST'])
+@app.route('/orders', methods=['POST']) #---PLACE ORDER
 def add_order():
     try:
         order_data = order_schema.load(request.json)
@@ -238,16 +286,28 @@ def add_order():
     return jsonify({"Message": "New Order Placed!"}), 201
 
 
-@app.route("/order_items/<int:id>", methods=['GET'])
+@app.route("/order_items/<int:id>", methods=['GET'])    #--RETRIEVES ORDER w/ID
 def order_items(id):
     query = select(Orders).filter(Orders.id == id)
     order = db.session.execute(query).scalar()
     return products_schema.jsonify(order.products)
 
-
-
-
-
+@app.route("/orders/<int:id>/track", methods=['GET'])   #--'TRACKS' ORDER w/id jsut provides basic info
+def track_order(id):
+    query = select(Orders).filter(Orders.id == id)
+    order = db.session.execute(query).scalar()
+    
+    if order is None:
+        return jsonify({"Error": "Order not found"}), 404
+    
+    tracking_data = {
+        "order_id": order.id,
+        "order_date": order.order_date,
+        "items": [{"id": product.id, "name": product.product_name} for product in order.products]   
+        #--outputs dictionary nicely with the 'name' displayed as well.
+    }
+    
+    return jsonify(tracking_data)
 
 if __name__ == '__main__':
     app.run(debug=True)
